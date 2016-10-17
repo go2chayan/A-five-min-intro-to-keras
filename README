@@ -1,0 +1,8 @@
+A Five Min Intro to Keras
+=========================
+
+This is a tiny script for introducing Keras (https://keras.io/) --- a deep learning library.
+
+Implemented by Md. Iftekhar Tanveer (go2chayan@gmail.com)
+
+It implements a simple feed forward neural network, feeds various data, and shows the output.
