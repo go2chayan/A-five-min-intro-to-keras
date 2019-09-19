@@ -1,7 +1,7 @@
 # Authored by Md Iftekhar Tanveer (itanveer@cs.rochester.edu)
 # May 22nd, 2016, 2:48 PM
 # -----------------------------------------------------------
-
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -57,15 +57,17 @@ plt.show()
 
 # =============== Keras =================
 from keras.models import Sequential
+from keras.callbacks import Callback
 from keras.layers.core import Dense, Activation
 from keras.utils.np_utils import to_categorical
 
 # Configure the NN
 model = Sequential()
 # Only the first layer needs input dimension
-model.add(Dense(output_dim=3,input_dim=2))
+model.add(Dense(output_dim=5,input_dim=2))
 model.add(Activation('relu'))
-model.add(Dense(output_dim=3,activation='relu'))
+model.add(Dense(output_dim=5,activation='relu'))
+model.add(Dense(output_dim=5,activation='relu'))
 model.add(Dense(output_dim=2,activation='relu'))
 
 # Compile the model
@@ -75,21 +77,47 @@ model.compile(loss='mean_squared_error',\
 # Iterate on training data
 y_tr = to_categorical(Y_train)
 y_tst = to_categorical(Y_test)
-model.fit(X_train,y_tr,nb_epoch=100,batch_size=4)
+
+
+class GeneratorModifier(Callback):
+
+    def __init__(self, gen_to_update):
+        self.gen_to_update = gen_to_update
+    
+    def on_batch_end(self, batch, logs):
+        changed_batchsize = random.randint(0, 3)
+        self.gen_to_update.send(changed_batchsize)
+
+
+def data_generator(X_train, y_tr, batch_size=4):
+    m,n = X_train.shape
+    assert y_tr.shape[0] == m
+    while True:
+        random_idx = random.randint(0, m)
+        end_idx = min(random_idx + batch_size, m)
+        ret = yield X_train[random_idx:end_idx,:], y_tr[random_idx:end_idx,:]
+        if ret:
+            batch_size = ret
+
+
+data_iter = data_generator(X_train, y_tr, batch_size=10)
+history = GeneratorModifier(data_iter)
+
+model.fit_generator(data_iter, steps_per_epoch=500, epochs=50, callbacks=[history])
 
 # Evaluate the performance
 eval_ = model.evaluate(X_test,y_tst,batch_size=4)
-print eval_
+print(eval_)
 
-# Print a model summary
+# Print(a model summary)
 model.summary()
 
 # prediction on new data
 classes = model.predict_classes(X_test,batch_size=4)
-print classes
+print(classes)
 
-# Print model weights
-print model.get_weights()
+# Print(model weights)
+print(model.get_weights())
 
 # ================ Display ================
 plt.figure('test')
@@ -102,7 +130,7 @@ plt.show()
 # === Draw decision hyperplane in high-res ===
 x,y = np.meshgrid(np.linspace(-1,1,1000),np.linspace(-1,1,1000))
 data = np.hstack((x.reshape(1000000,1),y.reshape(1000000,1)))
-print data.shape
+print(data.shape)
 classlabel = model.predict_classes(data).reshape(1000,1000).astype(np.float32)
 plt.imshow(classlabel)
 plt.show()
